@@ -7,70 +7,67 @@ var Publisher = require('@sazze/amqp').publisher;
 var Liner = require('@sazze/liner');
 
 var procOptions = {
-  filename: __filename
+    filename: __filename
 };
 
 // setup the process
 procUtil.setup(procOptions);
 
 var cliOptions = [
-  {name: 'exchange-name', alias: 'e', type: String, description: 'the name of the exchange', group: 'amqp', defaultValue: 'amqp.direct'},
-  {name: 'exchange-type', type: String, description: 'the type of the exchange', group: 'amqp', defaultValue: 'direct'},
-  {name: 'routing-key', alias: 'r', type: String, description: 'the routing key', group: 'amqp', defaultValue: 'amqp.direct'},
-  // publisher options
-  {name: 'no-confirm-channel', type: Boolean, description: 'don\'t use a confirm channel', group: 'publisher', defaultValue: false}
+    {name: 'exchange-name', alias: 'e', type: String, description: 'the name of the exchange', group: 'amqp', defaultValue: 'amqp.direct'},
+    {name: 'exchange-type', type: String, description: 'the type of the exchange', group: 'amqp', defaultValue: 'direct'},
+    {name: 'routing-key', alias: 'r', type: String, description: 'the routing key', group: 'amqp', defaultValue: 'amqp.direct'},
+    // publisher options
+    {name: 'no-confirm-channel', type: Boolean, description: 'don\'t use a confirm channel', group: 'publisher', defaultValue: false}
 ];
 
 var usageOptions = {
-  groups: {
-    amqp: {
-      title: 'amqp options'
-    },
-    publisher: 'publisher options'
-  }
+    groups: {
+        amqp: {
+            title: 'amqp options'
+        },
+        publisher: 'publisher options'
+    }
 };
 
 var options = new Options(cliOptions, usageOptions);
 
 options.parse(function () {
-  // massage command line options into amqp options
-  var amqpOptions = options.getAmqpOptions();
+    // massage command line options into amqp options
+    var amqpOptions = options.getAmqpOptions();
 
-  amqpOptions.exchange = {
-    name: options.options.amqp['exchange-name'],
-    type: options.options.amqp['exchange-type']
-  };
+    amqpOptions.exchange = {
+        name: options.options.amqp['exchange-name'],
+        type: options.options.amqp['exchange-type']
+    };
 
-  amqpOptions.routingKey = options.options.amqp['routing-key'];
-  amqpOptions.confirmChannel = !options.options.amqp['no-confirm-channel'];
+    amqpOptions.routingKey = options.options.amqp['routing-key'];
+    amqpOptions.confirmChannel = !options.options.amqp['no-confirm-channel'];
 
-  var publisher = new Publisher(amqpOptions);
+    var publisher = new Publisher(amqpOptions);
 
-  publisher.connect();
+    publisher.connect();
 
-  process.on('SIGINT', publisher.close.bind(publisher));
-  process.on('SIGTERM', publisher.close.bind(publisher));
+    process.on('SIGINT', publisher.close.bind(publisher));
+    process.on('SIGTERM', publisher.close.bind(publisher));
 
-  var liner = new Liner();
+    var liner = new Liner();
 
-  liner.on('data', function (data) {
-    publisher.publish(data, {}, amqpOptions.routingKey, function (err) {
-      if (err) {
-        console.error(err.message || err);
-        return;
-      }
-
-      console.log(data);
+    liner.on('data', function (data) {
+        publisher.publish(data, {}, amqpOptions.routingKey, function (data) {
+            publisher.close();
+        });
     });
-  });
 
-  liner.on('end', function () {
-    publisher.close();
-  });
+    liner.on('end', function () {
+        publisher.close();
+    });
 
-  liner.on('error', function (err) {
-    console.error(err.message || err);
-  });
-  
-  process.stdin.pipe(liner);
+    liner.on('error', function (err) {
+        console.error(err.message || err);
+        publisher.close.bind(publisher);
+        publisher.close();
+    });
+
+    process.stdin.pipe(liner);
 });
