@@ -53,14 +53,18 @@ options.parse(function () {
 
     var liner = new Liner();
 
+    var dataToSend;
+
     liner.on('data', function (data) {
-        publisher.publish(data, {}, amqpOptions.routingKey, function (data) {
-            publisher.close();
-        });
+        dataToSend += data;
     });
 
     liner.on('end', function () {
-        publisher.close();
+        console.log('Reading done');
+        publisher.publish(dataToSend, {}, amqpOptions.routingKey, function (data) {
+            console.log('Data sent. Error:' + data);
+            publisher.close();
+        });
     });
 
     liner.on('error', function (err) {
