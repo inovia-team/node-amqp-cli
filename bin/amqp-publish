@@ -53,7 +53,7 @@ options.parse(function () {
 
     var liner = new Liner();
 
-    var dataToSend;
+    var dataToSend = '';
 
     liner.on('data', function (data) {
         dataToSend += data;
