@@ -62,7 +62,6 @@ options.parse(function () {
     liner.on('end', function () {
         console.log('Reading done');
         publisher.publish(dataToSend, {}, amqpOptions.routingKey, function (data) {
-            console.log('Data sent. Error:' + data);
             publisher.close();
         });
     });
